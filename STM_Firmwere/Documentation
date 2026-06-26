@@ -1,0 +1,19 @@
+# STM32 Firmware Documentation
+
+This directory contains the state machine implementation for the NUCLEO-G070RB development board.
+
+## Hardware Configuration
+   Microcontroller: STM32F445RE
+   User Input: Tactile Switch connected to Pin `PC13` (Configured as EXTI Interrupt falling edge, Internal Pull-up).
+   User Output: Green LED connected to Pin `PA5`.
+
+## State Machine Logic
+The system starts with the LED turned off. Each physical switch press advances the state cycle:
+1. 1st Press: LED blinks at 0.5 Hz (Toggles every 1000ms via `TIM2`).
+2. 2nd Press: LED blinks at 1 Hz (Toggles every 500ms via `TIM2`).
+3. 3rd Press: LED blinks at 2 Hz (Toggles every 250ms via `TIM2`).
+4. 4th Press: LED turns **OFF** completely.
+5. 5th Press: Loops back to the 1st press configuration.
+
+## Low Power Strategy
+To meet the power optimization requirements for the in-person interview, the main execution loop implements the `__WFI()` (Wait For Interrupt) instruction. This stops the CPU clock and saves power, waking the processor up only when an EXTI button edge occurs or the internal `TIM2` peripheral overflows.
