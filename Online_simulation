@@ -1,0 +1,62 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <time.h>
+
+unsigned char buf[2048];
+int buf_size = 0;
+pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+
+void* sensor_worker(void* arg) {
+    while (1) {
+        sleep(1);
+        int n = rand() % 6; 
+        
+        pthread_mutex_lock(&mtx);
+        if (n > 0) {
+            if (buf_size + n < 2048) {
+                for (int i = 0; i < n; i++) {
+                    buf[buf_size++] = (unsigned char)(rand() % 256);
+                }
+                printf("Sensor: added %d bytes (Total: %d)\n", n, buf_size);
+            } else {
+                printf("Sensor Error: Buffer full\n");
+            }
+        }
+        pthread_mutex_unlock(&mtx);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t th;
+    srand(time(NULL));
+    
+    if (pthread_create(&th, NULL, sensor_worker, NULL) != 0) {
+        perror("Thread error");
+        return 1;
+    }
+    
+    while (1) {
+        sleep(10);
+        
+        pthread_mutex_lock(&mtx);
+        if (buf_size >= 50) {
+            printf("\n--- Printing latest 50 bytes ---\n");
+            int start = buf_size - 50;
+            for (int i = start; i < buf_size; i++) {
+                printf("%02X ", buf[i]);
+            }
+            printf("\n");
+            
+            buf_size -= 50;
+            printf("Cleared 50 bytes. Remaining: %d\n\n", buf_size);
+        } else {
+            printf("Skipped: Only %d/50 bytes in buffer\n", buf_size);
+        }
+        pthread_mutex_unlock(&mtx);
+    }
+    
+    return 0;
+}
